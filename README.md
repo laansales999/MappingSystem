@@ -61,9 +61,9 @@
     }
     
     .company-logo {
-      height: 40px;
+      height: 45px;
       width: auto;
-      filter: brightness(0) invert(1);
+      border-radius: 4px;
     }
     
     .dashboard-title {
@@ -395,15 +395,41 @@
         padding: 10px 15px;
       }
     }
+    
+    /* Loading animation for GADM data */
+    .loading-overlay {
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(0, 0, 0, 0.7);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 2000;
+      flex-direction: column;
+      gap: 15px;
+    }
+    
+    .spinner {
+      width: 50px;
+      height: 50px;
+      border: 5px solid rgba(255, 255, 255, 0.3);
+      border-radius: 50%;
+      border-top-color: var(--primary-color);
+      animation: spin 1s ease-in-out infinite;
+    }
+    
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
   </style>
 </head>
 <body>
   <div class="dashboard-header">
     <div class="logo-container">
-      <!-- Replace with your company logo -->
-      <div class="company-logo-placeholder" style="width: 40px; height: 40px; background: var(--primary-color); border-radius: 6px; display: flex; align-items: center; justify-content: center;">
-        <span style="font-weight: bold; color: white;">IS</span>
-      </div>
+      <img class="company-logo" src="https://raw.githubusercontent.com/laansales999/MappingSystem/main/LOGO.png" alt="Insight Security Logo">
       <div>
         <div class="dashboard-title">Insight Security Dashboard</div>
         <div class="dashboard-subtitle">African Regional Threat Monitoring</div>
@@ -548,6 +574,12 @@
 
   <div id="map"></div>
 
+  <!-- Loading overlay for GADM data -->
+  <div class="loading-overlay" id="loading-overlay" style="display: none;">
+    <div class="spinner"></div>
+    <div>Loading GADM Geographic Data...</div>
+  </div>
+
   <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
   <script src="https://unpkg.com/leaflet-geosearch/dist/geosearch.umd.js"></script>
   <script src="https://unpkg.com/leaflet.markercluster/dist/leaflet.markercluster.js"></script>
@@ -560,7 +592,7 @@
         capital: "Kinshasa",
         population: "101 million",
         securityLevel: "High Risk",
-        gadmFile: "data/gadm41_COD.geojson", // Path to your GADM file
+        gadmFile: "https://raw.githubusercontent.com/laansales999/MappingSystem/main/data/gadm41_COD.geojson",
         regions: [
           "Kinshasa", "Kongo Central", "Kwango", "Kwilu", "Mai-Ndombe", "Equateur", 
           "Mongala", "Nord-Ubangi", "Sud-Ubangi", "Tshuapa", "Tshopo", "Bas-Uele", 
@@ -572,7 +604,7 @@
         capital: "Nairobi",
         population: "53 million",
         securityLevel: "Medium Risk",
-        gadmFile: "data/gadm41_KEN.geojson", // Path to your GADM file
+        gadmFile: "https://raw.githubusercontent.com/laansales999/MappingSystem/main/data/gadm41_KEN.geojson",
         regions: [
           "Nairobi", "Central", "Coast", "Eastern", "North Eastern", "Nyanza", 
           "Rift Valley", "Western"
@@ -693,9 +725,20 @@
     setInterval(updateTimestamps, 1000);
     updateTimestamps();
 
+    // Show/hide loading overlay
+    function showLoading() {
+      document.getElementById('loading-overlay').style.display = 'flex';
+    }
+    
+    function hideLoading() {
+      document.getElementById('loading-overlay').style.display = 'none';
+    }
+
     // Load GADM country boundaries
     async function loadCountryBoundaries(countryCode) {
       try {
+        showLoading();
+        
         // Remove previous highlights
         if (currentCountryLayer) {
           map.removeLayer(currentCountryLayer);
@@ -708,6 +751,7 @@
         if (!countryData || !countryData.gadmFile) {
           // Fallback to simplified boundaries for non-GADM countries
           await loadSimplifiedCountry(countryCode);
+          hideLoading();
           return;
         }
         
@@ -750,10 +794,12 @@
         activeCountry = countryCode;
         updateStats();
         
+        hideLoading();
       } catch (error) {
         console.warn('Could not load GADM boundaries:', error);
         // Fallback to simplified boundaries
         await loadSimplifiedCountry(countryCode);
+        hideLoading();
       }
     }
 
@@ -797,6 +843,8 @@
     // Load region data from GADM
     async function loadRegionData(countryCode, regionName) {
       try {
+        showLoading();
+        
         if (currentRegionLayer) {
           map.removeLayer(currentRegionLayer);
         }
@@ -805,6 +853,7 @@
         if (!countryData || !countryData.gadmFile) {
           // Fallback for non-GADM countries
           loadSimplifiedRegion(countryCode, regionName);
+          hideLoading();
           return;
         }
         
@@ -833,9 +882,12 @@
           activeRegion = regionName;
           updateStats();
         }
+        
+        hideLoading();
       } catch (error) {
         console.warn('Could not load region data:', error);
         loadSimplifiedRegion(countryCode, regionName);
+        hideLoading();
       }
     }
 
